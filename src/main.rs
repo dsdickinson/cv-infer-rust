@@ -1,5 +1,13 @@
 use clap::Parser;
-use opencv::{highgui, prelude::*, videoio, Result};
+use opencv::{
+    highgui, 
+    imgcodecs::{imencode, ImwriteFlags},
+    prelude::*, 
+    videoio, 
+    core::Vector,
+    Result
+};
+use base64::prelude::*;
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -63,9 +71,22 @@ let models = client
     loop {
         let mut frame = Mat::default();
         cap.read(&mut frame)?;
+
+        // Encode frame
+        let mut buffer = Vector::<u8>::new();
+        imencode(".jpg", &frame, &mut buffer, &opencv::core::Vector::<i32>::new()).unwrap();
+
+        // Now `buffer` contains the encoded image data as a jpeg
+        println!("Encoded image size: {} bytes", buffer.len());
+
+        // Encode jpeg data to text for MQTT
+        let encoded = BASE64_STANDARD.encode(buffer);
+        println!("Encoded image: {} ", encoded);
+
         if frame.size()?.width > 0 {
             highgui::imshow(window, &frame)?;
         }
+
         let key = highgui::wait_key(60)?;
         if key > 0 && key != 255 {
             break;
